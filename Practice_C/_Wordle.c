@@ -44,7 +44,7 @@ int main()
                     printf("%c", guess_letter);
                 }
                 // if different letter but in word, print ?
-                else if (in_word(guess_letter, word))
+                else if (in_word(guess_letter, word)) // q: why can we pass word and not &word? a: because word is already a pointer
                 {
                     printf("?");
                 }
