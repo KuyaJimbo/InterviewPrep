@@ -1,20 +1,37 @@
-// Strategic Black Jack Game - James Ocampo 3/4/2025
-// This is a simple implementation of the game BlackJack in C
-// The game is played between a player and a dealer
-// The player is dealt two cards and can choose to hit or stand
-// The dealer is dealt two cards and must hit until the sum of their hand is 17 or more (House Rules)
-// The player wins if they have a Blackjack (sum of 21) or if the dealer busts
+// Strategic Black Jack Game - James Ocampo 3/5/2025
+// Now you specify the strategy and threshold for the player to stand
+// With "SUM" strategy, the player will stand if the sum of the hand is greater than or equal to the threshold
+// With "CHANCE" strategy, the player will stand if the chance of going bust is less than the threshold
 
-#include <stdio.h>  // Include the standard input/output library
-#include <stdlib.h> // Include the standard library for the rand() function
-#include <time.h>   // Include the time library for the time() function
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-// Define the strategy!!
+#define DECK_SIZE 52
+
+// Modify function signatures to include deck size
+float safe_chance(int playerSum, int deck[], int deckTop)
+{
+    int safe = 0;
+    int unsafe = 0;
+    for (int i = 0; i <= deckTop; i++)
+    {
+        if (playerSum + deck[i] <= 21)
+        {
+            safe++;
+        }
+        else
+        {
+            unsafe++;
+        }
+    }
+    return (float)safe / (safe + unsafe);
+}
 
 // Restore Cards
-void restoreCards(int deck[])
+void restoreCards(int deck[], int size)
 {
-    for (int i = 0; i < 52; i++)
+    for (int i = 0; i < size; i++)
     {
         deck[i] = (i % 13) + 1;
     }
@@ -25,8 +42,8 @@ void shuffleCards(int deck[], int size)
 {
     for (int i = 0; i < size; i++)
     {
-        int j = rand() % size; // pick a random index j
-        int temp = deck[i];    // swap the card at index i with the card at index j
+        int j = rand() % size;
+        int temp = deck[i];
         deck[i] = deck[j];
         deck[j] = temp;
     }
@@ -43,14 +60,14 @@ void printDeck(int deck[], int size)
 }
 
 // Deal a card to a person
-void dealToHand(int deck[], int *deckTop, int hand[], int *handTop)
+void dealToHand(int deck[], int deckSize, int *deckTop, int hand[], int *handTop)
 {
     // restore the cards if the deck is empty
     if (*deckTop == -1)
     {
-        restoreCards(deck);
-        shuffleCards(deck, sizeof(deck) / sizeof(deck[0]));
-        *deckTop = 51;
+        restoreCards(deck, deckSize);
+        shuffleCards(deck, deckSize);
+        *deckTop = deckSize - 1;
     }
 
     hand[*handTop] = deck[*deckTop]; // Assign the card from the deck to the hand
@@ -78,17 +95,15 @@ int main()
 
     // --------------- SET UP THE DECK ---------------
     // Initialize the deck
-    int deck[52];
+    int deck[DECK_SIZE];
     // Keep track of the top card
-    int deckTop = 51;
+    int deckTop = DECK_SIZE - 1;
 
     // Fill the deck with values 1 to 13
-    restoreCards(deck);
+    restoreCards(deck, DECK_SIZE);
     // Shuffle the deck
-    shuffleCards(deck, sizeof(deck) / sizeof(deck[0]));
+    shuffleCards(deck, DECK_SIZE);
 
-    // (DEBUG) Print the shuffled deck
-    printDeck(deck, sizeof(deck) / sizeof(deck[0]));
     // --------------- Creating Player and Dealer Hands ---------------
     int playerHand[11]; // Array to hold the player's hand
     int playerTop = 0;  // Index of the top card in the player's hand
@@ -102,19 +117,28 @@ int main()
     int card;
     char choice;
 
+    // Define the strategy
+    char type;
+    printf("Enter the type of strategy: sum (s) or chance (c)? ");
+    scanf(" %c", &type); // Added space before %c to consume whitespace
+
+    float threshold;
+    printf("Enter the threshold: ");
+    scanf("%f", &threshold);
+
     // --------------- GAME STARTS HERE ---------------
 
     // Deal the first card to the player
-    dealToHand(deck, &deckTop, playerHand, &playerTop);
+    dealToHand(deck, DECK_SIZE, &deckTop, playerHand, &playerTop);
 
     // Deal the second card to the player
-    dealToHand(deck, &deckTop, playerHand, &playerTop);
+    dealToHand(deck, DECK_SIZE, &deckTop, playerHand, &playerTop);
 
     // Deal the first card to the dealer
-    dealToHand(deck, &deckTop, dealerHand, &dealerTop);
+    dealToHand(deck, DECK_SIZE, &deckTop, dealerHand, &dealerTop);
 
     // Deal the second card to the dealer
-    dealToHand(deck, &deckTop, dealerHand, &dealerTop);
+    dealToHand(deck, DECK_SIZE, &deckTop, dealerHand, &dealerTop);
 
     // Print the player's hand
     printf("Player's hand: ");
@@ -126,14 +150,36 @@ int main()
     // --------------- Player's Turn ---------------
     while (playerSum < 21)
     {
-        // Ask the player if they want to hit or stand
-        choice = strategy(type, threshold, playerHand, deck, playerSum);
+        // if type is s
+        if (type == 's')
+        {
+            if (playerSum >= threshold)
+            {
+                choice = 's';
+            }
+            else
+            {
+                choice = 'h';
+            }
+        }
+        // if type is c
+        else
+        {
+            if (safe_chance(playerSum, deck, deckTop) < threshold)
+            {
+                choice = 's';
+            }
+            else
+            {
+                choice = 'h';
+            }
+        }
 
         // Player chooses to hit
         if (choice == 'h')
         {
             // Deal a card to the player
-            dealToHand(deck, &deckTop, playerHand, &playerTop);
+            dealToHand(deck, DECK_SIZE, &deckTop, playerHand, &playerTop);
 
             // Print the player's hand
             printf("Player's hand: ");
@@ -155,7 +201,7 @@ int main()
     while (dealerSum < 17 && playerSum <= 21)
     {
         // Deal a card to the dealer
-        dealToHand(deck, &deckTop, dealerHand, &dealerTop);
+        dealToHand(deck, DECK_SIZE, &deckTop, dealerHand, &dealerTop);
 
         // Print the dealer's hand
         printf("Dealer's hand: ");
@@ -202,4 +248,6 @@ int main()
             printf("It's a tie!\n");
         }
     }
+
+    return 0;
 }
